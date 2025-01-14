@@ -1,18 +1,18 @@
 #!/usr/bin/env node
-var fs = require("fs"),
-	connect = require("connect"),
-	serveIndex = require("serve-index"),
-	logger = require("morgan"),
-	WebSocket = require("faye-websocket"),
-	path = require("path"),
-	url = require("url"),
-	http = require("http"),
-	send = require("send"),
-	open = require("open"),
+var fs = require('fs'),
+	connect = require('connect'),
+	serveIndex = require('serve-index'),
+	logger = require('morgan'),
+	WebSocket = require('faye-websocket'),
+	path = require('path'),
+	url = require('url'),
+	http = require('http'),
+	send = require('send'),
+	open = require('open'),
 	es = require("event-stream"),
-	os = require("os"),
-	chokidar = require("chokidar");
-require("colors");
+	os = require('os'),
+	chokidar = require('chokidar');
+require('colors');
 
 var INJECTED_CODE = fs.readFileSync(path.join(__dirname, "injected.html"), "utf8");
 
@@ -20,15 +20,15 @@ var LiveServer = {
 	server: null,
 	watcher: null,
 	logLevel: 2,
-	index: "index.html"
+	index: 'index.html'
 };
 
 function escape(html){
 	return String(html)
-		.replace(/&(?!\w+;)/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;");
+		.replace(/&(?!\w+;)/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
 }
 
 // Based on connect.static(), but streamlined and with added code injecter
@@ -49,8 +49,8 @@ function staticServer(root) {
 		function directory() {
 			var pathname = url.parse(req.originalUrl).pathname;
 			res.statusCode = 301;
-			res.setHeader("Location", pathname + "/");
-			res.end("Redirecting to " + escape(pathname) + "/");
+			res.setHeader('Location', pathname + '/');
+			res.end('Redirecting to ' + escape(pathname) + '/');
 		}
 
 		function file(filepath /*, stat*/) {
@@ -67,7 +67,8 @@ function staticServer(root) {
 					}
 				}
 				if (injectTag === null && LiveServer.logLevel >= 3) {
-					console.warn(`Failed to inject refresh script! Couldn't find any of the tags ${injectCandidates} from ${filepath}`.yellow);
+					console.warn("Failed to inject refresh script!".yellow,
+						"Couldn't find any of the tags ", injectCandidates, "from", filepath);
 				}
 			}
 		}
@@ -80,8 +81,8 @@ function staticServer(root) {
 		function inject(stream) {
 			if (injectTag) {
 				// We need to modify the length given to browser
-				var len = INJECTED_CODE.length + res.getHeader("Content-Length");
-				res.setHeader("Content-Length", len);
+				var len = INJECTED_CODE.length + res.getHeader('Content-Length');
+				res.setHeader('Content-Length', len);
 				var originalPipe = stream.pipe;
 				stream.pipe = function(resp) {
 					originalPipe.call(stream, es.replace(new RegExp(injectTag, "i"), INJECTED_CODE + injectTag)).pipe(resp);
@@ -90,10 +91,10 @@ function staticServer(root) {
 		}
 
 		send(req, reqpath, { root: root, index: LiveServer.index })
-			.on("error", error)
-			.on("directory", directory)
-			.on("file", file)
-			.on("stream", inject)
+			.on('error', error)
+			.on('directory', directory)
+			.on('file', file)
+			.on('stream', inject)
 			.pipe(res);
 	};
 }
@@ -122,7 +123,7 @@ function entryPoint(staticHandler, file) {
  * @param ignorePattern {regexp} Ignore files by RegExp
  * @param noCssInject Don't inject CSS changes, just reload as with any other file change
  * @param open {(string|string[])} Subpath(s) to open in browser, use false to suppress launch (default: server root)
- * @param mount {array} Mount directories onto a route, e.g. [["/components", "./node_modules"]].
+ * @param mount {array} Mount directories onto a route, e.g. [['/components', './node_modules']].
  * @param logLevel {number} 0 = errors only, 1 = some, 2 = lots
  * @param file {string} Path to the entry point file
  * @param wait {number} Server will wait for all changes, before reloading
@@ -133,7 +134,7 @@ function entryPoint(staticHandler, file) {
  */
 LiveServer.start = function(options) {
 	options = options || {};
-	var host = options.host || "0.0.0.0";
+	var host = options.host || '0.0.0.0';
 	var port = options.port !== undefined ? options.port : 8080; // 0 means random
 	var root = options.root || process.cwd();
 	var mount = options.mount || [];
@@ -154,14 +155,14 @@ LiveServer.start = function(options) {
 	var noCssInject = options.noCssInject;
 	var httpsModule = options.httpsModule;
 	var mimetypes = options.mimetypes || {};
-	LiveServer.index = options.index === undefined ? "index.html" : options.index.split(",");
+	LiveServer.index = options.index === undefined ? 'index.html' : options.index.split(',');
 
 	if (httpsModule) {
 		try {
 			require.resolve(httpsModule);
 		} catch (e) {
-			console.error(`HTTPS module "${httpsModule}" you've provided was not found`.red);
-			console.error(`Did you do "npm install ${httpsModule}"?`.red);
+			console.error(("HTTPS module \"" + httpsModule + "\" you've provided was not found.").red);
+			console.error("Did you do", "\"npm install " + httpsModule + "\"?");
 			return;
 		}
 	} else {
@@ -173,12 +174,12 @@ LiveServer.start = function(options) {
 
 	// Add logger. Level 2 logs only errors
 	if (LiveServer.logLevel === 2) {
-		app.use(logger("dev", {
+		app.use(logger('dev', {
 			skip: function (req, res) { return res.statusCode < 400; }
 		}));
 	// Level 2 or above logs all requests
 	} else if (LiveServer.logLevel > 2) {
-		app.use(logger("dev"));
+		app.use(logger('dev'));
 	}
 	if (options.spa) {
 		middleware.push("spa");
@@ -205,7 +206,7 @@ LiveServer.start = function(options) {
 
 	// Use http-auth if configured
 	if (htpasswd !== null) {
-		var auth = require("http-auth");
+		var auth = require('http-auth');
 		var authConnect = require("http-auth-connect");
 		var basic = auth.basic({
 			realm: "Please authorize",
@@ -225,15 +226,15 @@ LiveServer.start = function(options) {
 			watchPaths.push(mountPath);
 		app.use(mountRule[0], staticServer(mountPath));
 		if (LiveServer.logLevel >= 1)
-			console.log(`Mapping ${mountRule[0]} to "${mountPath}"`);
+			console.log('Mapping %s to "%s"', mountRule[0], mountPath);
 	});
 	proxy.forEach(function(proxyRule) {
 		var proxyOpts = url.parse(proxyRule[1]);
 		proxyOpts.via = true;
 		proxyOpts.preserveHost = true;
-		app.use(proxyRule[0], require("proxy-middleware")(proxyOpts));
+		app.use(proxyRule[0], require('proxy-middleware')(proxyOpts));
 		if (LiveServer.logLevel >= 1)
-			console.log(`Mapping ${proxyRule[0]} to \"${proxyRule[1]}\"`);
+			console.log('Mapping %s to "%s"', proxyRule[0], proxyRule[1]);
 	});
 	app.use(staticServerHandler) // Custom static server
 		.use(entryPoint(staticServerHandler, file))
@@ -253,10 +254,10 @@ LiveServer.start = function(options) {
 	}
 
 	// Handle server startup errors
-	server.addListener("error", function(e) {
-		if (e.code === "EADDRINUSE") {
-			var serveURL = protocol + "://" + host + ":" + port;
-			console.warn(`${serveURL} is already in use. Trying another port.`.yellow);
+	server.addListener('error', function(e) {
+		if (e.code === 'EADDRINUSE') {
+			var serveURL = protocol + '://' + host + ':' + port;
+			console.log('%s is already in use. Trying another port.'.yellow, serveURL);
 			setTimeout(function() {
 				server.listen(0, host);
 			}, 1000);
@@ -267,15 +268,15 @@ LiveServer.start = function(options) {
 	});
 
 	// Handle successful server
-	server.addListener("listening", function(/*e*/) {
+	server.addListener('listening', function(/*e*/) {
 		LiveServer.server = server;
 
 		var address = server.address();
 		var serveHost = address.address === "0.0.0.0" ? "127.0.0.1" : address.address;
 		var openHost = host === "0.0.0.0" ? "127.0.0.1" : host;
 
-		var serveURL = protocol + "://" + serveHost + ":" + address.port;
-		var openURL = protocol + "://" + openHost + ":" + address.port;
+		var serveURL = protocol + '://' + serveHost + ':' + address.port;
+		var openURL = protocol + '://' + openHost + ':' + address.port;
 
 		var serveURLs = [ serveURL ];
 		if (LiveServer.logLevel > 2 && address.address === "0.0.0.0") {
@@ -302,12 +303,12 @@ LiveServer.start = function(options) {
 		if (LiveServer.logLevel >= 1) {
 			if (serveURL === openURL)
 				if (serveURLs.length === 1) {
-					console.log(`Serving "${root}" at ${serveURLs[0]}`.green);
+					console.log(("Serving \"%s\" at %s").green, root, serveURLs[0]);
 				} else {
-					console.log(`Serving "${root}" at\n\t${serveURLs.join("\n\t")}`.green);
+					console.log(("Serving \"%s\" at\n\t%s").green, root, serveURLs.join("\n\t"));
 				}
 			else
-				console.log(`Serving "${root}" at ${openURL} (${serveURL})`.green);
+				console.log(("Serving \"%s\" at %s (%s)").green, root, openURL, serveURL);
 		}
 
 		// Launch browser
@@ -333,9 +334,9 @@ LiveServer.start = function(options) {
 
 	// WebSocket
 	var clients = [];
-	server.addListener("upgrade", function(request, socket, head) {
+	server.addListener('upgrade', function(request, socket, head) {
 		var ws = new WebSocket(request, socket, head);
-		ws.onopen = function() { ws.send("connected"); };
+		ws.onopen = function() { ws.send('connected'); };
 
 		if (wait > 0) {
 			(function() {
@@ -381,12 +382,11 @@ LiveServer.start = function(options) {
 		if (LiveServer.logLevel >= 1) {
 			if (cssChange)
 				console.log("CSS change detected".magenta, changePath);
-			else
-				console.log("Change detected".cyan, changePath);
+			else console.log("Change detected".cyan, changePath);
 		}
 		clients.forEach(function(ws) {
 			if (ws)
-				ws.send(cssChange ? "refreshcss" : "reload");
+				ws.send(cssChange ? 'refreshcss' : 'reload');
 		});
 	}
 	LiveServer.watcher
@@ -400,7 +400,7 @@ LiveServer.start = function(options) {
 				console.log("Ready for changes".cyan);
 		})
 		.on("error", function (err) {
-			console.error("ERROR:".red, err);
+			console.log("ERROR:".red, err);
 		});
 
 	return server;
